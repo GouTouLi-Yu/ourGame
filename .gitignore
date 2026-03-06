@@ -1,0 +1,81 @@
+#///////////////////////////
+# 只管理 assets/scripts/ 下的代码
+#///////////////////////////
+
+# 忽略所有内容
+/*
+
+# 保留 .gitignore 文件本身
+!.gitignore
+
+# 不忽略 assets 目录
+!/assets
+
+# 忽略 assets 下的所有内容
+/assets/*
+
+# 不忽略 assets/scripts 目录
+!/assets/scripts
+
+# 忽略 assets/scripts 下的所有内容
+/assets/scripts/*
+
+# 不忽略 assets/scripts 下的所有文件和子目录
+!/assets/scripts/**
+
+# 忽略 .meta 文件（Cocos Creator 元数据文件）
+**/*.meta
+
+# 忽略编译产物（TypeScript 编译后的文件）
+*.js
+*.js.map
+*.d.ts
+
+#///////////////////////////
+# Cocos Creator 项目文件
+#///////////////////////////
+library/
+temp/
+local/
+build/
+profiles/
+settings/
+native/
+
+#///////////////////////////
+# 系统文件
+#///////////////////////////
+.DS_Store
+Thumbs.db
+desktop.ini
+*.swp
+*.swo
+*~
+
+#///////////////////////////
+# IDE 配置文件
+#///////////////////////////
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+#///////////////////////////
+# 依赖和构建工具
+#///////////////////////////
+node_modules/
+package-lock.json
+yarn.lock
+
+#///////////////////////////
+# 日志文件
+#///////////////////////////
+*.log
+logs/
+
+#///////////////////////////
+# 其他临时文件
+#///////////////////////////
+*.tmp
+*.bak
+*.cache
