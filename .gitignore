@@ -23,13 +23,24 @@
 # 不忽略 assets/scripts 下的所有文件和子目录
 !/assets/scripts/**
 
+# 不忽略 extensions 目录（插件目录）
+!/extensions
+
+# 忽略 extensions 下的所有内容
+/extensions/*
+
+# 不忽略 extensions 下的所有插件目录
+!/extensions/**
+
 # 忽略 .meta 文件（Cocos Creator 元数据文件）
 **/*.meta
 
 # 忽略编译产物（TypeScript 编译后的文件）
+# 但保留 extensions 下的 .js 文件（插件代码）
 *.js
 *.js.map
 *.d.ts
+!/extensions/**/*.js
 
 #///////////////////////////
 # Cocos Creator 项目文件
@@ -66,6 +77,12 @@ desktop.ini
 node_modules/
 package-lock.json
 yarn.lock
+# 但保留 extensions 下的 package.json（插件配置）
+!/extensions/**/package.json
+# 忽略 extensions 下的 node_modules（插件依赖）
+/extensions/**/node_modules/
+# 忽略 extensions 下的 package-lock.json（可以通过 npm install 重新生成）
+/extensions/**/package-lock.json
 
 #///////////////////////////
 # 日志文件
@@ -79,3 +96,9 @@ logs/
 *.tmp
 *.bak
 *.cache
+# 忽略 extensions 下的缓存目录和缓存文件
+/extensions/**/cache/
+/extensions/**/*.cache
+/extensions/**/fileCache.json
+# 但保留 extensions 下的 settings.json（用户配置文件）
+!/extensions/**/settings.json

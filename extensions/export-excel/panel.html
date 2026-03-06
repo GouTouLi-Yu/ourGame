@@ -1,0 +1,519 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>一键导表</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+
+        .container {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        h1 {
+            font-size: 24px;
+            margin-bottom: 20px;
+            color: #333;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            color: #555;
+        }
+
+        .input-group {
+            display: flex;
+            gap: 10px;
+        }
+
+        input[type="text"] {
+            flex: 1;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+
+        button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            font-size: 14px;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        .btn-primary {
+            background: #1890ff;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #40a9ff;
+        }
+
+        .btn-primary:disabled {
+            background: #d9d9d9;
+            cursor: not-allowed;
+        }
+
+        .btn-secondary {
+            background: #f0f0f0;
+            color: #333;
+        }
+
+        .btn-secondary:hover {
+            background: #e0e0e0;
+        }
+
+        .progress {
+            margin-top: 20px;
+            padding: 15px;
+            background: #f0f0f0;
+            border-radius: 4px;
+            display: none;
+        }
+
+        .progress.active {
+            display: block;
+        }
+
+        .progress-text {
+            margin-bottom: 10px;
+            color: #666;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 20px;
+            background: #e0e0e0;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: #1890ff;
+            transition: width 0.3s;
+            width: 0%;
+        }
+
+        .result {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 4px;
+            display: none;
+        }
+
+        .result.success {
+            background: #f6ffed;
+            border: 1px solid #b7eb8f;
+            color: #52c41a;
+        }
+
+        .result.error {
+            background: #fff2f0;
+            border: 1px solid #ffccc7;
+            color: #ff4d4f;
+        }
+
+        .result.active {
+            display: block;
+        }
+
+        .result-title {
+            font-weight: 500;
+            margin-bottom: 10px;
+        }
+
+        .error-list {
+            margin-top: 10px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .error-item {
+            padding: 8px;
+            margin-bottom: 5px;
+            background: white;
+            border-left: 3px solid #ff4d4f;
+            font-size: 13px;
+            line-height: 1.5;
+        }
+
+        .file-list {
+            margin-top: 10px;
+            list-style: none;
+        }
+
+        .file-item {
+            padding: 5px 0;
+            color: #666;
+            font-size: 13px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>一键导表</h1>
+        
+        <div class="form-group">
+            <label>Excel文件路径：</label>
+            <div class="input-group">
+                <input type="text" id="excelPath" placeholder="请输入Excel文件所在目录路径">
+                <button class="btn-secondary" onclick="selectFolder()">选择文件夹</button>
+            </div>
+        </div>
+
+        <div class="form-group">
+            <button class="btn-primary" id="exportBtn" onclick="exportExcel()">一键导表</button>
+            <button class="btn-secondary" onclick="testClick()" style="margin-left: 10px;">测试按钮</button>
+        </div>
+
+        <div class="progress" id="progress">
+            <div class="progress-text" id="progressText">正在处理...</div>
+            <div class="progress-bar">
+                <div class="progress-fill" id="progressFill"></div>
+            </div>
+        </div>
+
+        <div class="result" id="result">
+            <div class="result-title" id="resultTitle"></div>
+            <div id="resultContent"></div>
+        </div>
+    </div>
+
+    <script>
+        console.log('========== 面板HTML脚本开始执行 ==========');
+        console.log('当前时间:', new Date().toISOString());
+        console.log('document.readyState:', document.readyState);
+        console.log('window对象:', typeof window !== 'undefined' ? '存在' : '不存在');
+        
+        // 加载配置
+        function loadConfig() {
+            console.log('[loadConfig] 函数被调用');
+            try {
+                if (typeof Editor === 'undefined') {
+                    console.error('[loadConfig] Editor对象不存在');
+                    return;
+                }
+                if (!Editor.Ipc) {
+                    console.error('[loadConfig] Editor.Ipc不存在');
+                    return;
+                }
+                console.log('[loadConfig] 发送get-config请求');
+                Editor.Ipc.sendToMain('export-excel:get-config', (err, config) => {
+                    console.log('[loadConfig] 收到配置响应:', { err, config });
+                    if (!err && config && config.excelLocation) {
+                        const input = document.getElementById('excelPath');
+                        if (input) {
+                            input.value = config.excelLocation;
+                            console.log('[loadConfig] 已设置Excel路径:', config.excelLocation);
+                        } else {
+                            console.error('[loadConfig] 找不到excelPath输入框');
+                        }
+                    }
+                });
+            } catch (error) {
+                console.error('[loadConfig] 执行出错:', error);
+            }
+        }
+
+        // 选择文件夹
+        function selectFolder() {
+            console.log('[selectFolder] 函数被调用');
+            try {
+                if (typeof Editor === 'undefined' || !Editor.Dialog) {
+                    console.error('[selectFolder] Editor.Dialog不存在');
+                    alert('编辑器API未加载');
+                    return;
+                }
+                Editor.Dialog.select({
+                    type: 'directory',
+                    title: '选择Excel文件所在目录'
+                }).then(result => {
+                    console.log('[selectFolder] 选择结果:', result);
+                    if (result && result.filePaths && result.filePaths.length > 0) {
+                        const input = document.getElementById('excelPath');
+                        if (input) {
+                            input.value = result.filePaths[0];
+                            saveConfig();
+                        }
+                    }
+                }).catch(err => {
+                    console.error('[selectFolder] 选择文件夹失败:', err);
+                });
+            } catch (error) {
+                console.error('[selectFolder] 执行出错:', error);
+            }
+        }
+
+        // 保存配置
+        function saveConfig() {
+            console.log('[saveConfig] 函数被调用');
+            try {
+                const input = document.getElementById('excelPath');
+                if (!input) {
+                    console.error('[saveConfig] 找不到excelPath输入框');
+                    return;
+                }
+                const excelLocation = input.value;
+                console.log('[saveConfig] Excel路径:', excelLocation);
+                
+                if (typeof Editor === 'undefined' || !Editor.Ipc) {
+                    console.error('[saveConfig] Editor.Ipc不存在');
+                    return;
+                }
+                
+                Editor.Ipc.sendToMain('export-excel:set-config', { excelLocation: excelLocation }, (err) => {
+                    if (err) {
+                        console.error('[saveConfig] 保存配置失败:', err);
+                    } else {
+                        console.log('[saveConfig] 配置保存成功');
+                    }
+                });
+            } catch (error) {
+                console.error('[saveConfig] 执行出错:', error);
+            }
+        }
+
+        // 导出Excel
+        function exportExcel() {
+            console.log('========== [exportExcel] 函数被调用 ==========');
+            
+            try {
+                const excelPathInput = document.getElementById('excelPath');
+                if (!excelPathInput) {
+                    console.error('[exportExcel] 找不到excelPath输入框');
+                    showError('找不到输入框元素');
+                    return;
+                }
+                
+                const excelPath = excelPathInput.value;
+                console.log('[exportExcel] Excel路径:', excelPath);
+                
+                if (!excelPath || excelPath.trim() === '') {
+                    console.warn('[exportExcel] Excel路径为空');
+                    showError('请先设置Excel文件路径');
+                    return;
+                }
+
+                const btn = document.getElementById('exportBtn');
+                const progress = document.getElementById('progress');
+                const result = document.getElementById('result');
+
+                if (!btn) {
+                    console.error('[exportExcel] 找不到exportBtn按钮');
+                    return;
+                }
+                if (!progress) {
+                    console.error('[exportExcel] 找不到progress元素');
+                    return;
+                }
+                if (!result) {
+                    console.error('[exportExcel] 找不到result元素');
+                    return;
+                }
+
+                btn.disabled = true;
+                progress.classList.add('active');
+                result.classList.remove('active');
+
+                updateProgress(10, '开始导表...');
+                console.log('[exportExcel] 开始导表，Excel路径:', excelPath);
+
+                // 检查Editor.Ipc是否存在
+                if (typeof Editor === 'undefined') {
+                    console.error('[exportExcel] Editor对象不存在！');
+                    showError('编辑器API未加载，请重启编辑器');
+                    btn.disabled = false;
+                    progress.classList.remove('active');
+                    return;
+                }
+                
+                if (!Editor.Ipc) {
+                    console.error('[exportExcel] Editor.Ipc不存在！');
+                    showError('编辑器IPC未加载，请重启编辑器');
+                    btn.disabled = false;
+                    progress.classList.remove('active');
+                    return;
+                }
+
+                console.log('[exportExcel] 准备发送IPC消息: export-excel:export');
+                Editor.Ipc.sendToMain('export-excel:export', { excelLocation: excelPath }, (err, response) => {
+                    console.log('========== [exportExcel] 收到IPC响应 ==========');
+                    console.log('[exportExcel] err:', err);
+                    console.log('[exportExcel] response:', response);
+                    
+                    btn.disabled = false;
+                    progress.classList.remove('active');
+
+                    if (err) {
+                        console.error('[exportExcel] 导表失败:', err);
+                        showError('导出失败: ' + (err.message || err), [err.message || String(err)]);
+                    } else if (response && response.success) {
+                        console.log('[exportExcel] 导表成功:', response.message);
+                        if (response.files && response.files.length > 0) {
+                            showSuccess(response.message, response.files);
+                        } else {
+                            showSuccess(response.message || '没有需要导出的文件', []);
+                        }
+                    } else if (response) {
+                        console.error('[exportExcel] 导表失败:', response.message);
+                        if (response.errors && response.errors.length > 0) {
+                            console.error('[exportExcel] 错误详情:', response.errors);
+                        }
+                        showError(response.message || '导出失败', response.errors || []);
+                    } else {
+                        console.error('[exportExcel] 收到空响应');
+                        showError('导出失败: 未收到有效响应', []);
+                    }
+                });
+            } catch (error) {
+                console.error('[exportExcel] 函数执行出错:', error);
+                console.error('[exportExcel] 错误堆栈:', error.stack);
+                showError('执行出错: ' + error.message, [error.message]);
+            }
+        }
+
+        // 更新进度
+        function updateProgress(percent, text) {
+            try {
+                const fill = document.getElementById('progressFill');
+                const textEl = document.getElementById('progressText');
+                if (fill) fill.style.width = percent + '%';
+                if (textEl) textEl.textContent = text || '正在处理...';
+                console.log(`[进度 ${percent}%] ${text || '正在处理...'}`);
+            } catch (error) {
+                console.error('[updateProgress] 执行出错:', error);
+            }
+        }
+
+        // 显示成功
+        function showSuccess(message, files) {
+            try {
+                const result = document.getElementById('result');
+                const resultTitle = document.getElementById('resultTitle');
+                const resultContent = document.getElementById('resultContent');
+
+                if (!result || !resultTitle || !resultContent) {
+                    console.error('[showSuccess] 找不到必要的DOM元素');
+                    return;
+                }
+
+                result.className = 'result success active';
+                resultTitle.textContent = '✓ ' + message;
+
+                let content = '';
+                if (files && files.length > 0) {
+                    content += '<div>生成的文件：</div><ul class="file-list">';
+                    files.forEach(file => {
+                        content += `<li class="file-item">${file}</li>`;
+                    });
+                    content += '</ul>';
+                }
+
+                resultContent.innerHTML = content;
+            } catch (error) {
+                console.error('[showSuccess] 执行出错:', error);
+            }
+        }
+
+        // 显示错误
+        function showError(message, errors) {
+            try {
+                const result = document.getElementById('result');
+                const resultTitle = document.getElementById('resultTitle');
+                const resultContent = document.getElementById('resultContent');
+
+                if (!result || !resultTitle || !resultContent) {
+                    console.error('[showError] 找不到必要的DOM元素');
+                    return;
+                }
+
+                result.className = 'result error active';
+                resultTitle.textContent = '✗ ' + message;
+
+                let content = '';
+                if (errors && errors.length > 0) {
+                    content += '<div class="error-list">';
+                    errors.forEach(error => {
+                        content += `<div class="error-item">${error}</div>`;
+                    });
+                    content += '</div>';
+                }
+
+                resultContent.innerHTML = content;
+            } catch (error) {
+                console.error('[showError] 执行出错:', error);
+            }
+        }
+
+        // 测试函数
+        function testClick() {
+            console.log('========== [testClick] 测试按钮被点击 ==========');
+            alert('按钮点击正常！\n如果看到这个提示，说明按钮事件绑定成功。');
+        }
+
+        // 确保函数在全局作用域
+        window.exportExcel = exportExcel;
+        window.selectFolder = selectFolder;
+        window.testClick = testClick;
+
+        // 初始化函数
+        function init() {
+            console.log('========== [init] 初始化函数被调用 ==========');
+            console.log('[init] Editor对象:', typeof Editor !== 'undefined' ? '存在' : '不存在');
+            console.log('[init] Editor.Ipc:', typeof Editor !== 'undefined' && Editor.Ipc ? '存在' : '不存在');
+            console.log('[init] document.body:', document.body ? '存在' : '不存在');
+            console.log('[init] document.readyState:', document.readyState);
+            
+            // 绑定按钮事件
+            const btn = document.getElementById('exportBtn');
+            if (btn) {
+                console.log('[init] 找到exportBtn按钮，绑定点击事件');
+                btn.addEventListener('click', function(e) {
+                    console.log('[init] 按钮通过addEventListener被点击');
+                    e.preventDefault();
+                    exportExcel();
+                });
+            } else {
+                console.error('[init] 找不到exportBtn按钮');
+            }
+            
+            // 加载配置
+            loadConfig();
+        }
+
+        // 页面加载时初始化
+        if (document.readyState === 'loading') {
+            console.log('[脚本] 文档正在加载，等待DOMContentLoaded');
+            window.addEventListener('DOMContentLoaded', init);
+        } else {
+            console.log('[脚本] 文档已加载，立即初始化');
+            setTimeout(init, 100);
+        }
+    </script>
+</body>
+</html>
+
