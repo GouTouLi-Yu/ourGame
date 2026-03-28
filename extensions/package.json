@@ -1,0 +1,16 @@
+{
+  "name": "extensions",
+  "version": "1.0.0",
+  "description": "Cocos Creator extensions workspace",
+  "private": true,
+  "scripts": {
+    "build": "npm run build --prefix cocos-mcp-server",
+    "build:all": "npm run build --prefix cocos-mcp-server",
+    "watch": "npm run watch --prefix cocos-mcp-server"
+  }
+}
+
+
+
+
+

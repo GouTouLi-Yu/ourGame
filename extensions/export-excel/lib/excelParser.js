@@ -234,30 +234,9 @@ class ExcelParser {
             }
         }
 
-        // 查找start和end标记
-        let startRow = -1;
-        let endRow = -1;
-        for (let row = 4; row <= maxRow; row++) {
-            const marker = this.getCellValue(sheet, row, 1);
-            if (marker) {
-                const markerStr = String(marker).trim().toLowerCase();
-                if (markerStr === 'start') {
-                    startRow = row;
-                } else if (markerStr === 'end') {
-                    endRow = row;
-                    break;
-                }
-            }
-        }
-
-        if (startRow === -1 || endRow === -1) {
-            this.errorHandler.addMissingStartEndError(fileName, sheetName);
-            return null;
-        }
-
-        // 解析数据（start和end之间的行）
+        // 解析数据（从第4行开始到最后一行）
         const data = {};
-        for (let row = startRow + 1; row < endRow; row++) {
+        for (let row = 4; row <= maxRow; row++) {
             const idValue = this.getCellValue(sheet, row, 2);
             if (!idValue || String(idValue).trim() === '') {
                 continue; // 跳过没有id的行
